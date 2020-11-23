@@ -1,0 +1,235 @@
+{% extends 'base.html' %}
+
+{% block content %}
+
+<button onclick="cleanForm()" class="btn btn-success my-2" data-toggle="modal" data-target="#saveModal"> <i class="fa fa-plus"></i> Crear</button>
+
+<div class="row">
+    {% for b in books %}
+    <div class="col-xl-3 col-md-4 col-12 mt-2">
+        <div class="card">
+            <div class="card-header">
+                <h3>
+                    {{ b.name }}
+                    <button data-toggle="modal" data-target="#deleteModal" class="btn-sm btn btn-outline-danger float-right"
+                        data-id="{{b.pk}}" data-name="{{b.name}}"> <i class="fa fa-trash"></i> </button>
+                    <button data-toggle="modal" data-target="#saveModal"
+                        class="btn-sm btn btn-outline-primary float-right mr-2" data-id="{{b.pk}}" data-name="{{b.name}}">
+                        <i class="fa fa-edit"></i>
+                    </button>
+                </h3>
+            </div>
+            <div class="card-body">
+                <p>{{ b.content }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- crear o actualizar libro -->
+
+<div class="modal fade" tabindex="-1" id="saveModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                
+                    {% if form.instance.pk %}
+                        Actualizar Libro: {{ form.instance.name }}
+                    {% else %}
+                        Crear Libro
+                    {% endif %}
+
+                </h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="saveForm" action="
+            {% if form.instance.pk %}
+                {% url 'book:update' form.instance.pk %}
+            {% else %}
+                {% url 'book:add' %}
+            {% endif %}
+            " add_action="{% url 'book:add' %}"
+                update_action="{% url 'book:update' 0 %}" method="post">
+                <div class="modal-body">
+
+                    {% csrf_token %}
+
+                    {% include 'partials/form_error_field.html' with errors=form.name.errors %}
+
+                    <label for="id_name">Nombre:</label>
+                    {{ form.name }}
+
+                    {% include 'partials/form_error_field.html' with errors=form.content.errors %}
+
+                    <label for="id_content">Contenido:</label>
+                    {{ form.content }}
+
+                    {% include 'partials/form_error_field.html' with errors=form.category.errors %}
+
+                    <label for="id_category">Categoría:</label>
+                    {{ form.category }}
+
+                    {% include 'partials/form_error_field.html' with errors=form.dimention.errors %}
+
+                    {{ form.dimention.label }}
+                    
+                    {{ form.dimention }}
+
+                    {% include 'partials/form_error_field.html' with errors=form.addresses.errors %}
+
+                    {{ form.addresses.label }}
+                    
+                    {{ form.addresses }}
+
+                    {% include 'partials/form_error_field.html' with errors=form.tags.errors %}
+
+                    {{ form.tags.label }}
+                    
+                    {{ form.tags }}
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary">Guardar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- borrar libro -->
+
+<div class="modal fade" tabindex="-1" id="deleteModal">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Borrar libro: <span></span></h5>
+                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                    <span aria-hidden="true">&times;</span>
+                </button>
+            </div>
+            <form id="deleteForm" action="" delete_action="{% url 'book:delete' 0 %}" method="post">
+                <div class="modal-body">
+
+                    {% csrf_token %}
+
+                    <p>¿Seguro que deseas borrar el libro seleccionado?</p>
+
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <button type="submit" class="btn btn-danger">Eliminar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+{% include 'partials/pagination.html' with page_obj=books %}
+
+<script>
+    
+
+    window.onload = function () {
+        saveBook()
+        deleteBook()
+    }
+
+    function deleteBook() {
+        var deleteModal = document.getElementById('deleteModal')
+        var deleteForm = document.getElementById('deleteForm')
+
+        deleteModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget
+            // Extract info from data-* attributes
+            var id = button.getAttribute('data-id')
+            var name = button.getAttribute('data-name')
+
+            document.querySelector('#deleteModal .modal-title span').textContent = name
+
+            deleteForm.setAttribute('action', deleteForm.getAttribute('delete_action').slice(0, -1) + id)
+
+        })
+    }
+
+    function saveBook() {
+        var saveModal = document.getElementById('saveModal')
+
+        if (document.querySelectorAll("#saveModal .text-danger").length > 0) {
+            var saveModali = new bootstrap.Modal(saveModal)
+            saveModali.show()
+        }
+
+        var saveForm = document.getElementById('saveForm')
+
+        saveModal.addEventListener('show.bs.modal', function (event) {
+            // Button that triggered the modal
+            var button = event.relatedTarget
+            // Extract info from data-* attributes
+            var id = button.getAttribute('data-id')
+            var name = button.getAttribute('data-name')
+
+            if (id == null) {
+                // add
+                saveForm.setAttribute('action', saveForm.getAttribute('add_action'))
+                document.querySelector('#saveModal .modal-title').textContent = "Crear libro"
+            } else {
+                // actualizacion
+                saveForm.setAttribute('action', saveForm.getAttribute('update_action').slice(0, -1) + id)
+                document.querySelector('#saveModal .modal-title').textContent = "Actualizar libro: "+name
+                getInfoBook(id)
+            }
+
+        })
+    }
+
+    function cleanForm() {
+        var name = document.querySelector('#saveForm [name=name]')
+        name.value = ""
+        var content = document.querySelector('#saveForm [name=content]')
+        content.value = ""
+
+        var dimentionx = document.querySelector('#saveForm [name=dimention-x]')
+        dimentionx.value = ""
+        var dimentiony = document.querySelector('#saveForm [name=dimention-y]')
+        dimentiony.value = ""
+        var dimentionz = document.querySelector('#saveForm [name=dimention-z]')
+        dimentionz.value = ""
+
+        document.querySelectorAll('#saveForm [name=category] option')[0].selected="selected"
+    }
+
+    function getInfoBook(bookId) {
+
+        fetch('http://127.0.0.1:8000/book/j-get-book-by-id/' + bookId)
+            .then(res => res.json())
+            .then(res => {
+                if (res == name)
+                    return
+
+                var name = document.querySelector('#saveForm [name=name]')
+                name.value = res.name
+                var content = document.querySelector('#saveForm [name=content]')
+                content.value = res.content
+
+                var dimentionx = document.querySelector('#saveForm [name=dimention-x]')
+                dimentionx.value = res.dimention.x
+                var dimentiony = document.querySelector('#saveForm [name=dimention-y]')
+                dimentiony.value = res.dimention.y
+                var dimentionz = document.querySelector('#saveForm [name=dimention-z]')
+                dimentionz.value = res.dimention.z
+
+                document.querySelector('#saveForm [name=category] option[value="'+res.category_id+'"]').selected="selected"
+         
+            })
+    }
+
+
+</script>
+
+{% endblock %}
